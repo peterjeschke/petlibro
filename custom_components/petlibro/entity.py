@@ -16,26 +16,15 @@ from .hub import PetLibroHub
 
 _DeviceT = TypeVar("_DeviceT", bound=Device)
 
-
-class PetLibroEntity(
-    CoordinatorEntity[DataUpdateCoordinator[bool]], Generic[_DeviceT]
-):
-    """Generic PETLIBRO entity representing common data and methods."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self, device: _DeviceT, hub: PetLibroHub, description: PetLibroEntityDescription[_DeviceT]
-    ) -> None:
-        """Pass coordinator to CoordinatorEntity."""
+class PetLibroEntity(CoordinatorEntity[DataUpdateCoordinator[bool]], Generic[_DeviceT]):
+    def __init__(self, device: _DeviceT, hub: PetLibroHub, key: str):
         super().__init__(hub.coordinator)
         self.device = device
         self.hub = hub
-        self.entity_description = description
-        self._attr_unique_id = f"{self.device.serial}-{description.key}"
+        self._attr_unique_id = f"{self.device.serial}-{key}"
 
     @cached_property
-    def device_info(self) -> DeviceInfo | None:
+    def device_info(self) -> DeviceInfo:
         """Return the device information for a PETLIBRO."""
         assert self.device.serial
         return DeviceInfo(

@@ -1,11 +1,15 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from typing_extensions import override
 
+from ...entities.wet_feeding_entities import WetFeedingPlanSensorEntity
 from ...exceptions import PetLibroAPIError
 from ..device import Device
 from logging import getLogger
+
+from ...sensor import PetLibroSensorEntity, PetLibroSensorEntityDescription, PetLibroDescribedSensorEntity
 
 _LOGGER = getLogger(__name__)
 
@@ -30,6 +34,96 @@ class PolarWetFoodFeeder(Device):
             })
         except PetLibroAPIError as err:
             _LOGGER.error("Error refreshing data for PolarWetFoodFeeder: %", err)
+
+    @override
+    def build_sensor_descriptions(self, hub) -> list[PetLibroSensorEntity]:
+        return [
+            *(
+                WetFeedingPlanSensorEntity.build_sensors(self, hub, plan)
+                for plan in self._data.get("wetFeedingPlan", {}).get("data", {}).get("plan", [])
+            ),
+            *(
+                PetLibroDescribedSensorEntity(self, hub, description)
+                for description in [
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="device_sn",
+                    translation_key="device_sn",
+                    icon="mdi:identifier",
+                    name="Device SN"
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="mac",
+                    translation_key="mac_address",
+                    icon="mdi:network",
+                    name="MAC Address"
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="wifi_rssi",
+                    translation_key="wifi_rssi",
+                    icon="mdi:wifi",
+                    native_unit_of_measurement="dBm",
+                    name="Wi-Fi Signal Strength",
+                    device_class=SensorDeviceClass.SIGNAL_STRENGTH,
+                    state_class=SensorStateClass.MEASUREMENT
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="wifi_ssid",
+                    translation_key="wifi_ssid",
+                    icon="mdi:wifi",
+                    name="Wi-Fi SSID"
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="battery_state",
+                    translation_key="battery_state",
+                    icon="mdi:battery",
+                    name="Battery Level"
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="electric_quantity",
+                    translation_key="electric_quantity",
+                    icon="mdi:battery",
+                    native_unit_of_measurement="%",
+                    device_class=SensorDeviceClass.BATTERY,
+                    state_class=SensorStateClass.MEASUREMENT,
+                    name="Battery / AC %"
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="feeding_plan_state",
+                    translation_key="feeding_plan",
+                    icon="mdi:calendar-check",
+                    name="Feeding Plan",
+                    should_report=lambda device: device.feeding_plan_state is not None,
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="next_feeding_time",
+                    translation_key="next_feeding_time",
+                    icon="mdi:clock-outline",
+                    name="Feeding Begins",
+                    device_class=SensorDeviceClass.TIMESTAMP
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="next_feeding_end_time",
+                    translation_key="next_feeding_end_time",
+                    icon="mdi:clock-end",
+                    name="Feeding Ends",
+                    device_class=SensorDeviceClass.TIMESTAMP
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="plate_position",
+                    translation_key="plate_position",
+                    icon="mdi:rotate-3d-variant",
+                    name="Plate Position",
+                    should_report=lambda device: device.plate_position is not None,
+                ),
+                PetLibroSensorEntityDescription[PolarWetFoodFeeder](
+                    key="active_feeding_plan_name",
+                    translation_key="active_feeding_plan_name",
+                    icon="mdi:notebook",
+                    name="Active feeding plan"
+                )
+            ]
+            ),
+        ]
 
     @property
     def battery_state(self) -> str | None:
@@ -67,7 +161,8 @@ class PolarWetFoodFeeder(Device):
         raw_date = self._data.get("nextFeedingDay")
         raw_timezone = self._data.get("timezone")
         if None in (raw_time, raw_date, raw_timezone):
-            _LOGGER.error("One of the time values is not available: raw_time=%s raw_date=%s raw_timezone=%s", raw_time, raw_date, raw_timezone)
+            _LOGGER.error("One of the time values is not available: raw_time=%s raw_date=%s raw_timezone=%s", raw_time,
+                          raw_date, raw_timezone)
             return None
         raw_combined = f"{raw_date} {raw_time}"
         try:
@@ -86,7 +181,8 @@ class PolarWetFoodFeeder(Device):
         raw_date = self._data.get("nextFeedingDay")
         raw_timezone = self._data.get("timezone")
         if None in (raw_time, raw_date, raw_timezone):
-            _LOGGER.error("One of the time values is not available: raw_time=%s raw_date=%s raw_timezone=%s", raw_time, raw_date, raw_timezone)
+            _LOGGER.error("One of the time values is not available: raw_time=%s raw_date=%s raw_timezone=%s", raw_time,
+                          raw_date, raw_timezone)
             return None
         raw_combined = f"{raw_date} {raw_time}"
         try:

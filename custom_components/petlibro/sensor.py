@@ -19,7 +19,6 @@ from .hub import PetLibroHub  # Adjust the import path as necessary
 
 _LOGGER = getLogger(__name__)
 
-from .devices import Device
 from .devices.device import Device
 from .devices.feeders.feeder import Feeder
 from .devices.feeders.air_smart_feeder import AirSmartFeeder
@@ -30,6 +29,7 @@ from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
 from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
 from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
 from .entity import PetLibroEntity, _DeviceT, PetLibroEntityDescription
+
 
 def icon_for_gauge_level(gauge_level: int | None = None, offset: int = 0) -> str:
     """Return a gauge icon valid identifier."""
@@ -64,30 +64,35 @@ class PetLibroSensorEntityDescription(SensorEntityDescription, PetLibroEntityDes
 
 
 class PetLibroSensorEntity(PetLibroEntity[_DeviceT], SensorEntity):
-    """PETLIBRO sensor entity."""
-
-    entity_description: PetLibroSensorEntityDescription[_DeviceT]
-
-    def __init__(self, device, hub, description):
+    def __init__(self, device, hub, key):
         """Initialize the sensor."""
-        super().__init__(device, hub, description)
-        
+        super().__init__(device, hub, key)
+
         # Ensure unique_id includes the device serial, specific sensor key, and the MAC address from the device attributes
         mac_address = getattr(device, "mac", None)
         if mac_address:
-            self._attr_unique_id = f"{device.serial}-{description.key}-{mac_address.replace(':', '')}"
+            self._attr_unique_id = f"{device.serial}-{key}-{mac_address.replace(':', '')}"
         else:
-            self._attr_unique_id = f"{device.serial}-{description.key}"
-        
+            self._attr_unique_id = f"{device.serial}-{key}"
+
         # Dictionary to keep track of the last known state for each sensor key
         self._last_sensor_state = {}
+
+
+class PetLibroDescribedSensorEntity(PetLibroSensorEntity[_DeviceT, PetLibroSensorEntityDescription[_DeviceT]],
+                                    SensorEntity):
+    entity_description: PetLibroSensorEntityDescription[_DeviceT]
+
+    def __init__(self, device: _DeviceT, hub: PetLibroHub, description: PetLibroSensorEntityDescription[_DeviceT]):
+        super().__init__(device, hub, description.key)
+        self.entity_description = description
 
     @property
     def native_value(self) -> float | datetime | str | None:
         """Return the state."""
 
         sensor_key = self.entity_description.key
-        
+
         # Handle feeding_plan_state as "On" or "Off"
         if sensor_key == "feeding_plan_state":
             feeding_plan_active = getattr(self.device, sensor_key, False)
@@ -109,7 +114,7 @@ class PetLibroSensorEntity(PetLibroEntity[_DeviceT], SensorEntity):
             conversion_factor = 1 / 12  # Default conversion factor
             if hasattr(self.device, "conversion_mode") and self.device.conversion_mode == "1/24":
                 conversion_factor = 1 / 24
-            
+
             cups = feeding_quantity * conversion_factor
             return f"{round(cups, 2)}"
 
@@ -542,82 +547,7 @@ DEVICE_SENSOR_MAP: dict[type[Device], list[PetLibroSensorEntityDescription]] = {
         ),
     ],
     PolarWetFoodFeeder: [
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="device_sn",
-            translation_key="device_sn",
-            icon="mdi:identifier",
-            name="Device SN"
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="mac",
-            translation_key="mac_address",
-            icon="mdi:network",
-            name="MAC Address"
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="wifi_rssi",
-            translation_key="wifi_rssi",
-            icon="mdi:wifi",
-            native_unit_of_measurement="dBm",
-            name="Wi-Fi Signal Strength",
-            device_class=SensorDeviceClass.SIGNAL_STRENGTH,
-            state_class=SensorStateClass.MEASUREMENT
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="wifi_ssid",
-            translation_key="wifi_ssid",
-            icon="mdi:wifi",
-            name="Wi-Fi SSID"
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="battery_state",
-            translation_key="battery_state",
-            icon="mdi:battery",
-            name="Battery Level"
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="electric_quantity",
-            translation_key="electric_quantity",
-            icon="mdi:battery",
-            native_unit_of_measurement="%",
-            device_class=SensorDeviceClass.BATTERY,
-            state_class=SensorStateClass.MEASUREMENT,
-            name="Battery / AC %"
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="feeding_plan_state",
-            translation_key="feeding_plan",
-            icon="mdi:calendar-check",
-            name="Feeding Plan",
-            should_report=lambda device: device.feeding_plan_state is not None,
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="next_feeding_time",
-            translation_key="next_feeding_time",
-            icon="mdi:clock-outline",
-            name="Feeding Begins",
-            device_class=SensorDeviceClass.TIMESTAMP
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="next_feeding_end_time",
-            translation_key="next_feeding_end_time",
-            icon="mdi:clock-end",
-            name="Feeding Ends",
-            device_class=SensorDeviceClass.TIMESTAMP
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="plate_position",
-            translation_key="plate_position",
-            icon="mdi:rotate-3d-variant",
-            name="Plate Position",
-            should_report=lambda device: device.plate_position is not None,
-        ),
-        PetLibroSensorEntityDescription[PolarWetFoodFeeder](
-            key="active_feeding_plan_name",
-            translation_key="active_feeding_plan_name",
-            icon="mdi:notebook",
-            name="Active feeding plan"
-        ),
+
     ],
     DockstreamSmartFountain: [
         PetLibroSensorEntityDescription[DockstreamSmartFountain](
@@ -757,15 +687,15 @@ DEVICE_SENSOR_MAP: dict[type[Device], list[PetLibroSensorEntityDescription]] = {
             native_unit_of_measurement="min",
             name="Water Time Duration"
         ),
-# Does not work with multi pet tracking, but may use this code later once I have the API info for the RFID tags.
-#        PetLibroSensorEntityDescription[DockstreamSmartRFIDFountain](
-#            key="today_total_ml",
-#            translation_key="today_total_ml",
-#            icon="mdi:water",
-#            native_unit_of_measurement="mL",
-#            state_class=SensorStateClass.TOTAL_INCREASING,
-#            name="Total Water Used Today"
-#        ),
+        # Does not work with multi pet tracking, but may use this code later once I have the API info for the RFID tags.
+        #        PetLibroSensorEntityDescription[DockstreamSmartRFIDFountain](
+        #            key="today_total_ml",
+        #            translation_key="today_total_ml",
+        #            icon="mdi:water",
+        #            native_unit_of_measurement="mL",
+        #            state_class=SensorStateClass.TOTAL_INCREASING,
+        #            name="Total Water Used Today"
+        #        ),
         PetLibroSensorEntityDescription[DockstreamSmartRFIDFountain](
             key="remaining_filter_days",
             translation_key="remaining_filter_days",
@@ -776,10 +706,11 @@ DEVICE_SENSOR_MAP: dict[type[Device], list[PetLibroSensorEntityDescription]] = {
     ]
 }
 
+
 async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up PETLIBRO sensors using config entry."""
     # Retrieve the hub from hass.data that was set up in __init__.py
@@ -800,14 +731,22 @@ async def async_setup_entry(
     devices = hub.devices  # Devices should already be loaded in the hub
     _LOGGER.debug("Devices in hub: %s", devices)
 
-    # Create sensor entities for each device based on the sensor map
+    # Ask device directly if it has sensors
     entities = [
         PetLibroSensorEntity(device, hub, description)
-        for device in devices  # Iterate through devices from the hub
-        for device_type, entity_descriptions in DEVICE_SENSOR_MAP.items()
-        if isinstance(device, device_type)
-        for description in entity_descriptions
+        for device in devices
+        for description in device.build_sensor_descriptions()
     ]
+    if not entities:
+        # If not, fall back to definitions from this file
+        # Remove this fallback once all devices are updated
+        entities = [
+            PetLibroSensorEntity(device, hub, description)
+            for device in devices  # Iterate through devices from the hub
+            for device_type, entity_descriptions in DEVICE_SENSOR_MAP.items()
+            if isinstance(device, device_type)
+            for description in entity_descriptions
+        ]
 
     if not entities:
         _LOGGER.warning("No sensors added, entities list is empty!")
@@ -819,4 +758,3 @@ async def async_setup_entry(
 
         # Add sensor entities to Home Assistant
         async_add_entities(entities)
-
