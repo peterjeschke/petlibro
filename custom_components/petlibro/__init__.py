@@ -1,22 +1,20 @@
 import logging
 
-from datetime import timedelta  # For managing the update interval
-from homeassistant.core import HomeAssistant
-from homeassistant.const import Platform
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed  # For coordinator and update handling
-from .devices import Device
-from .devices.feeders.feeder import Feeder
+
+from .core import DOMAIN, CONF_EMAIL, CONF_PASSWORD, PLATFORMS, UPDATE_INTERVAL_SECONDS, PetLibroHub, Device
+from .devices import product_name_map
 from .devices.feeders.air_smart_feeder import AirSmartFeeder
-from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
+from .devices.feeders.feeder import Feeder
 from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
+from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
 from .devices.feeders.one_rfid_smart_feeder import OneRFIDSmartFeeder
 from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
 from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
 from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD, PLATFORMS, UPDATE_INTERVAL_SECONDS  # Assuming UPDATE_INTERVAL_SECONDS is defined in const
-from .hub import PetLibroHub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,7 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub
 
         # Load devices only once here
-        await hub.load_devices()
+        await hub.load_devices(product_name_map)
 
         # Start the coordinator for periodic updates
         await hub.coordinator.async_config_entry_first_refresh()

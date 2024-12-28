@@ -1,11 +1,9 @@
+from logging import getLogger
+from typing import cast
+
 import aiohttp
 
-from ...api import make_api_call
-from aiohttp import ClientSession, ClientError
-from ...exceptions import PetLibroAPIError
-from ..device import Device
-from typing import cast
-from logging import getLogger
+from ...core import Device, PetLibroAPIError
 
 _LOGGER = getLogger(__name__)
 

@@ -1,81 +1,19 @@
 """Support for PETLIBRO numbers."""
 from __future__ import annotations
-from .api import make_api_call
-import aiohttp
-from aiohttp import ClientSession, ClientError
-from dataclasses import dataclass
-from dataclasses import dataclass, field
-from collections.abc import Callable
-from functools import cached_property
-from typing import Optional
-from typing import Any
-import logging
-from .const import DOMAIN
-from homeassistant.components.number import (
-    NumberEntity,
-    NumberEntityDescription,
-    NumberDeviceClass,
 
-)
+from logging import getLogger
+
+from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
-from .hub import PetLibroHub  # Adjust the import path as necessary
 
-
-_LOGGER = logging.getLogger(__name__)
-
-from .devices import Device
-from .devices.device import Device
+from . import PetLibroHub
+from .core import DOMAIN, Device
 from .devices.feeders.feeder import Feeder
-from .devices.feeders.air_smart_feeder import AirSmartFeeder
-from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
-from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
 from .devices.feeders.one_rfid_smart_feeder import OneRFIDSmartFeeder
-from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
-from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
-from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
-from .entity import PetLibroEntity, _DeviceT, PetLibroEntityDescription
+from .entities import PetLibroNumberEntityDescription, PetLibroDescribedNumberEntity
 
-@dataclass(frozen=True)
-class PetLibroNumberEntityDescription(NumberEntityDescription, PetLibroEntityDescription[_DeviceT]):
-    """A class that describes device number entities."""
-
-    device_class_fn: Callable[[_DeviceT], NumberDeviceClass | None] = lambda _: None
-    value: Callable[[_DeviceT], float] = lambda _: True
-    method: Callable[[_DeviceT], float] = lambda _: True
-    device_class: Optional[NumberDeviceClass] = None
-
-class PetLibroNumberEntity(PetLibroEntity[_DeviceT], NumberEntity):
-    """PETLIBRO sensor entity."""
-
-    entity_description: PetLibroNumberEntityDescription[_DeviceT]
-
-    @cached_property
-    def device_class(self) -> NumberDeviceClass | None:
-        """Return the device class to use in the frontend, if any."""
-        return self.entity_description.device_class
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the current state."""
-        state = getattr(self.device, self.entity_description.key, None)
-        if state is None:
-            _LOGGER.warning(f"Value '{self.entity_description.key}' is None for device {self.device.name}")
-            return None
-        _LOGGER.debug(f"Retrieved value for '{self.entity_description.key}', {self.device.name}: {state}")
-        return float(state)
-    
-    async def async_set_native_value(self, value: float) -> None:
-        """Set the value of the number."""
-        _LOGGER.debug(f"Setting value {value} for {self.device.name}")
-        try:
-            # Regular case for sound_level or other methods that only need a value
-            _LOGGER.debug(f"Calling method with value={value} for {self.device.name}")
-            await self.entity_description.method(self.device, value)
-            _LOGGER.debug(f"Value {value} set successfully for {self.device.name}")
-        except Exception as e:
-            _LOGGER.error(f"Error setting value {value} for {self.device.name}: {e}")
+_LOGGER = getLogger(__name__)
 
 DEVICE_NUMBER_MAP: dict[type[Device], list[PetLibroNumberEntityDescription]] = {
     Feeder: [
@@ -116,7 +54,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up PETLIBRO number using config entry."""
     # Retrieve the hub from hass.data that was set up in __init__.py
-    hub = hass.data[DOMAIN].get(entry.entry_id)
+    hub: PetLibroHub = hass.data[DOMAIN].get(entry.entry_id)
 
     if not hub:
         _LOGGER.error("Hub not found for entry: %s", entry.entry_id)
@@ -135,7 +73,7 @@ async def async_setup_entry(
 
     # Create number entities for each device based on the number map
     entities = [
-        PetLibroNumberEntity(device, hub, description)
+        PetLibroDescribedNumberEntity(device, hub.coordinator, description)
         for device in devices  # Iterate through devices from the hub
         for device_type, entity_descriptions in DEVICE_NUMBER_MAP.items()
         if isinstance(device, device_type)

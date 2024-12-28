@@ -1,45 +1,25 @@
 """Support for PETLIBRO buttons."""
 from __future__ import annotations
-from .api import make_api_call
-import aiohttp
-from aiohttp import ClientSession, ClientError
-from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
-from typing import Any, Generic
+
 from logging import getLogger
-from .const import DOMAIN
-from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
-from homeassistant.const import EntityCategory
+
+from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
-from .hub import PetLibroHub  # Adjust the import path as necessary
 
-_LOGGER = getLogger(__name__)
-
-from .entity import PetLibroEntity, _DeviceT, PetLibroEntityDescription
-from .devices import Device
-from .devices.device import Device
-from .devices.feeders.feeder import Feeder
+from . import PetLibroHub
+from .core import DOMAIN, Device
 from .devices.feeders.air_smart_feeder import AirSmartFeeder
-from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
+from .devices.feeders.feeder import Feeder
 from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
+from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
 from .devices.feeders.one_rfid_smart_feeder import OneRFIDSmartFeeder
 from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
 from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
 from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
+from .entities import PetLibroButtonEntityDescription, PetLibroDescribedButtonEntity
 
-@dataclass(frozen=True)
-class RequiredKeysMixin(Generic[_DeviceT]):
-    """A class that describes devices button entity required keys."""
-    set_fn: Callable[[_DeviceT], Coroutine[Any, Any, None]]
-
-
-@dataclass(frozen=True)
-class PetLibroButtonEntityDescription(ButtonEntityDescription, PetLibroEntityDescription[_DeviceT], RequiredKeysMixin[_DeviceT]):
-    """A class that describes device button entities."""
-    entity_category: EntityCategory = EntityCategory.CONFIG
-
+_LOGGER = getLogger(__name__)
 
 # Map buttons to their respective device types
 DEVICE_BUTTON_MAP: dict[type[Device], list[PetLibroButtonEntityDescription]] = {
@@ -170,31 +150,6 @@ DEVICE_BUTTON_MAP: dict[type[Device], list[PetLibroButtonEntityDescription]] = {
     ],
 }
 
-class PetLibroButtonEntity(PetLibroEntity[_DeviceT], ButtonEntity):
-    """PETLIBRO button entity."""
-    entity_description: PetLibroButtonEntityDescription[_DeviceT]
-
-    @property
-    def available(self) -> bool:
-        """Check if the device is available."""
-        return getattr(self.device, 'online', False)
-
-    async def async_press(self) -> None:
-        """Handle the button press."""
-        _LOGGER.debug("Pressing button: %s for device %s", self.entity_description.name, self.device.name)
-
-        # Log available methods for debugging
-        _LOGGER.debug("Available methods for device %s: %s", self.device.name, dir(self.device))
-
-        try:
-            await self.entity_description.set_fn(self.device)
-            await self.device.refresh()  # Refresh the device state after the button press
-            _LOGGER.debug("Successfully pressed button: %s", self.entity_description.name)
-        except Exception as e:
-            _LOGGER.error(
-                f"Error pressing button {self.entity_description.name} for device {self.device.name}: {e}",
-                exc_info=True  # Log full traceback for better debugging
-            )
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -203,7 +158,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up PETLIBRO buttons using config entry."""
     # Retrieve the hub from hass.data that was set up in __init__.py
-    hub = hass.data[DOMAIN].get(entry.entry_id)
+    hub: PetLibroHub = hass.data[DOMAIN].get(entry.entry_id)
 
     if not hub:
         _LOGGER.error("Hub not found for entry: %s", entry.entry_id)
@@ -222,7 +177,7 @@ async def async_setup_entry(
 
     # Create button entities for each device based on the button map
     entities = [
-        PetLibroButtonEntity(device, hub, description)
+        PetLibroDescribedButtonEntity(device, hub.coordinator, description)
         for device in devices  # Iterate through devices from the hub
         for device_type, entity_descriptions in DEVICE_BUTTON_MAP.items()
         if isinstance(device, device_type)

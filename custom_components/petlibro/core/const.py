@@ -1,5 +1,3 @@
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
-
 DOMAIN = "petlibro"
 
 # Configuration keys

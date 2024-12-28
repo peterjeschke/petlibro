@@ -6,18 +6,19 @@
 # https://api.us.petlibro.com/device/setting/getAttributeSetting
 # https://api.us.petlibro.com/device/data/grainStatus
 
-from logging import getLogger
-from hashlib import md5
-from urllib.parse import urljoin
-from typing import Any, Dict, List, TypeAlias
+import uuid  # To generate unique request IDs
 from datetime import datetime, timedelta
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from .exceptions import PetLibroAPIError, PetLibroInvalidAuth
-from aiohttp import ClientSession, ClientError
+from hashlib import md5
+from logging import getLogger
+from typing import Any, Dict, List, TypeAlias
+from urllib.parse import urljoin
 
 import aiohttp
-import uuid  # To generate unique request IDs
+from aiohttp import ClientSession
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+from .exceptions import PetLibroAPIError
+
 
 async def make_api_call(session, url, data):
     async with session.post(url, json=data) as response:

@@ -1,19 +1,23 @@
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Callable, Self
+from logging import getLogger
 
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.typing import StateType
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from custom_components.petlibro import PetLibroHub, Device
-from custom_components.petlibro.sensor import PetLibroSensorEntity
-from custom_components.petlibro.entity import _DeviceT
+from .entity import _DeviceT
+from .sensor import PetLibroSensorEntity
+from ..core import Device
 
 type native_value_type = StateType | date | datetime | Decimal
 
+_LOGGER = getLogger(__name__)
+
+
 class WetFeedingPlanSensorEntity(PetLibroSensorEntity[_DeviceT]):
-    def __init__(self, device: Device, hub: PetLibroHub, plan, provider_property: property):
-        super().__init__(device, hub, f"{plan.plate}_{provider_property.__name__}")
+    def __init__(self, device: Device, coordinator: DataUpdateCoordinator, plan, provider_property: property):
+        super().__init__(device, coordinator, f"{plan.plate}_{provider_property.__name__}")
         self._plan = plan
         self._property = provider_property
 
@@ -49,15 +53,14 @@ class WetFeedingPlanSensorEntity(PetLibroSensorEntity[_DeviceT]):
     def cancel_state(self) -> bool:
         return self._plan.cancelState
 
-
     @staticmethod
-    def build_sensors(device: Device, hub: PetLibroHub, plan) -> list[PetLibroSensorEntity[_DeviceT]]:
-        return [
-            WetFeedingPlanSensorEntity(device, hub, plan, prop)
-            for prop in [
-                WetFeedingPlanSensorEntity.start_time,
-                WetFeedingPlanSensorEntity.end_time,
-                WetFeedingPlanSensorEntity.label,
-                WetFeedingPlanSensorEntity.cancel_state,
-            ]
-        ]
+    def build_sensors(device: Device, coordinator: DataUpdateCoordinator, plan) -> list[PetLibroSensorEntity[_DeviceT]]:
+        built_sensors = [WetFeedingPlanSensorEntity(device, coordinator, plan, prop) for prop in
+                         [WetFeedingPlanSensorEntity.start_time,
+                          WetFeedingPlanSensorEntity.end_time,
+                          WetFeedingPlanSensorEntity.label,
+                          WetFeedingPlanSensorEntity.cancel_state,
+                          ]
+                         ]
+        _LOGGER.info(f"built sensors: {built_sensors}")
+        return built_sensors

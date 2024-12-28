@@ -1,15 +1,14 @@
 from datetime import datetime
+from logging import getLogger
 from zoneinfo import ZoneInfo
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from typing_extensions import override
 
-from ...entities.wet_feeding_entities import WetFeedingPlanSensorEntity
-from ...exceptions import PetLibroAPIError
-from ..device import Device
-from logging import getLogger
-
-from ...sensor import PetLibroSensorEntity, PetLibroSensorEntityDescription, PetLibroDescribedSensorEntity
+from ...core import PetLibroAPIError, Device
+from ...entities import WetFeedingPlanSensorEntity, PetLibroSensorEntityDescription, PetLibroSensorEntity, \
+    PetLibroDescribedSensorEntity
 
 _LOGGER = getLogger(__name__)
 
@@ -36,14 +35,15 @@ class PolarWetFoodFeeder(Device):
             _LOGGER.error("Error refreshing data for PolarWetFoodFeeder: %", err)
 
     @override
-    def build_sensor_descriptions(self, hub) -> list[PetLibroSensorEntity]:
+    def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
+        _LOGGER.debug(f"Building sensors, available data: {self._data}")
         return [
             *(
-                WetFeedingPlanSensorEntity.build_sensors(self, hub, plan)
+                WetFeedingPlanSensorEntity.build_sensors(self, coordinator, plan)
                 for plan in self._data.get("wetFeedingPlan", {}).get("data", {}).get("plan", [])
             ),
             *(
-                PetLibroDescribedSensorEntity(self, hub, description)
+                PetLibroDescribedSensorEntity(self, coordinator, description)
                 for description in [
                 PetLibroSensorEntityDescription[PolarWetFoodFeeder](
                     key="device_sn",

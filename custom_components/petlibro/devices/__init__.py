@@ -1,8 +1,6 @@
 from typing import Dict, Type
-from .device import Device
 
-from . import Device
-from .device import Device
+from ..core import Device
 from .feeders.feeder import Feeder
 from .feeders.air_smart_feeder import AirSmartFeeder
 from .feeders.granary_smart_feeder import GranarySmartFeeder

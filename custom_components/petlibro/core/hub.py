@@ -1,20 +1,19 @@
 import asyncio
-
-from logging import getLogger
-from asyncio import gather
 from collections.abc import Mapping
-from typing import List, Any, Optional
 from datetime import datetime, timedelta
-from .const import UPDATE_INTERVAL_SECONDS
-from homeassistant.core import HomeAssistant
+from logging import getLogger
+from typing import List, Any, Optional, Type, Dict
+
+from aiohttp import ClientResponseError, ClientConnectorError
 from homeassistant.const import CONF_REGION, CONF_API_TOKEN
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from aiohttp import ClientResponseError, ClientConnectorError
-from .api import PetLibroAPI  # Use a relative import if inside the same package
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD  # Import CONF_EMAIL and CONF_PASSWORD
-from .api import PetLibroAPIError
-from .devices import Device, product_name_map
+
+from .api import PetLibroAPI
+from .const import CONF_EMAIL, CONF_PASSWORD, UPDATE_INTERVAL_SECONDS
+from .device import Device
+from .exceptions import PetLibroAPIError
 
 _LOGGER = getLogger(__name__)
 
@@ -67,7 +66,7 @@ class PetLibroHub:
             update_interval=timedelta(seconds=UPDATE_INTERVAL_SECONDS),  # Use defined interval
         )
 
-    async def load_devices(self) -> None:
+    async def load_devices(self, name_to_device: Dict[str, Type[Device]]) -> None:
         """Load devices from the API and initialize them."""
         try:
             device_list = await self.api.list_devices()
@@ -88,9 +87,10 @@ class PetLibroHub:
                     continue
 
                 # Create a new device and add it without calling refresh immediately
-                if device_name in product_name_map:
+                if device_name in name_to_device:
                     _LOGGER.debug(f"Loading new device: {device_name} (Serial: {device_sn})")
-                    device = product_name_map[device_name](device_data, self.api)
+                    device = name_to_device[device_name](device_data, self.api)
+                    await device.refresh()
                     self.devices.append(device)  # Add to device list
                     _LOGGER.debug(f"Successfully loaded device: {device_name} (Serial: {device_sn})")
                 else:

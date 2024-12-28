@@ -1,46 +1,27 @@
 """Support for PETLIBRO sensors."""
 from __future__ import annotations
-from .api import make_api_call
-import aiohttp
-from aiohttp import ClientSession, ClientError
-from dataclasses import dataclass
+
 from logging import getLogger
-from collections.abc import Callable
-from datetime import datetime
-from typing import Any, cast
-from .const import DOMAIN
+
 from homeassistant.components.sensor.const import SensorStateClass, SensorDeviceClass
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfMass, UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
-from .hub import PetLibroHub  # Adjust the import path as necessary
 
-_LOGGER = getLogger(__name__)
-
-from .devices.device import Device
-from .devices.feeders.feeder import Feeder
+from . import PetLibroHub
+from .core import DOMAIN, Device
 from .devices.feeders.air_smart_feeder import AirSmartFeeder
-from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
+from .devices.feeders.feeder import Feeder
 from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
+from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
 from .devices.feeders.one_rfid_smart_feeder import OneRFIDSmartFeeder
 from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
 from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
 from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
-from .entity import PetLibroEntity, _DeviceT, PetLibroEntityDescription
+from .entities import PetLibroSensorEntityDescription, PetLibroDescribedSensorEntity
 
-
-def icon_for_gauge_level(gauge_level: int | None = None, offset: int = 0) -> str:
-    """Return a gauge icon valid identifier."""
-    if gauge_level is None or gauge_level <= 0 + offset:
-        return "mdi:gauge-empty"
-    if gauge_level > 70 + offset:
-        return "mdi:gauge-full"
-    if gauge_level > 30 + offset:
-        return "mdi:gauge"
-    return "mdi:gauge-low"
-
+_LOGGER = getLogger(__name__)
 
 def unit_of_measurement_feeder(device: Feeder) -> str | None:
     return device.unit_type
@@ -51,141 +32,6 @@ def device_class_feeder(device: Feeder) -> SensorDeviceClass | None:
         return SensorDeviceClass.WEIGHT
     if device.unit_type in [UnitOfVolume.MILLILITERS]:
         return SensorDeviceClass.VOLUME
-
-
-@dataclass(frozen=True)
-class PetLibroSensorEntityDescription(SensorEntityDescription, PetLibroEntityDescription[_DeviceT]):
-    """A class that describes device sensor entities."""
-
-    icon_fn: Callable[[Any], str | None] = lambda _: None
-    native_unit_of_measurement_fn: Callable[[_DeviceT], str | None] = lambda _: None
-    device_class_fn: Callable[[_DeviceT], SensorDeviceClass | None] = lambda _: None
-    should_report: Callable[[_DeviceT], bool] = lambda _: True
-
-
-class PetLibroSensorEntity(PetLibroEntity[_DeviceT], SensorEntity):
-    def __init__(self, device, hub, key):
-        """Initialize the sensor."""
-        super().__init__(device, hub, key)
-
-        # Ensure unique_id includes the device serial, specific sensor key, and the MAC address from the device attributes
-        mac_address = getattr(device, "mac", None)
-        if mac_address:
-            self._attr_unique_id = f"{device.serial}-{key}-{mac_address.replace(':', '')}"
-        else:
-            self._attr_unique_id = f"{device.serial}-{key}"
-
-        # Dictionary to keep track of the last known state for each sensor key
-        self._last_sensor_state = {}
-
-
-class PetLibroDescribedSensorEntity(PetLibroSensorEntity[_DeviceT, PetLibroSensorEntityDescription[_DeviceT]],
-                                    SensorEntity):
-    entity_description: PetLibroSensorEntityDescription[_DeviceT]
-
-    def __init__(self, device: _DeviceT, hub: PetLibroHub, description: PetLibroSensorEntityDescription[_DeviceT]):
-        super().__init__(device, hub, description.key)
-        self.entity_description = description
-
-    @property
-    def native_value(self) -> float | datetime | str | None:
-        """Return the state."""
-
-        sensor_key = self.entity_description.key
-
-        # Handle feeding_plan_state as "On" or "Off"
-        if sensor_key == "feeding_plan_state":
-            feeding_plan_active = getattr(self.device, sensor_key, False)
-            # Log only if the state has changed
-            if self._last_sensor_state.get(sensor_key) != feeding_plan_active:
-                _LOGGER.debug(f"Raw {sensor_key} for device {self.device.serial}: {feeding_plan_active}")
-                self._last_sensor_state[sensor_key] = feeding_plan_active
-            return "On" if feeding_plan_active else "Off"
-
-        # Handle today_eating_time as raw seconds value
-        elif sensor_key == "today_eating_time":
-            eating_time_seconds = getattr(self.device, sensor_key, 0)
-            return eating_time_seconds
-
-        # Handle today_feeding_quantity as raw numeric value, converting to cups
-        elif sensor_key == "today_feeding_quantity":
-            feeding_quantity = getattr(self.device, sensor_key, 0)
-            # Determine the conversion factor based on device-specific attributes or context
-            conversion_factor = 1 / 12  # Default conversion factor
-            if hasattr(self.device, "conversion_mode") and self.device.conversion_mode == "1/24":
-                conversion_factor = 1 / 24
-
-            cups = feeding_quantity * conversion_factor
-            return f"{round(cups, 2)}"
-
-        # Handle wifi_rssi to display only the numeric value
-        elif sensor_key == "wifi_rssi":
-            wifi_rssi = getattr(self.device, sensor_key, None)
-            if wifi_rssi is not None:
-                if self._last_sensor_state.get(sensor_key) != wifi_rssi:
-                    _LOGGER.debug(f"Raw {sensor_key} for device {self.device.serial}: {wifi_rssi}")
-                    self._last_sensor_state[sensor_key] = wifi_rssi
-                return wifi_rssi
-
-        # Handle weight in grams and convert to ounces
-        elif sensor_key == "weight":
-            weight_in_grams = getattr(self.device, sensor_key, 0.0)
-            ounces = round(weight_in_grams * 0.035274, 2)
-            return ounces
-
-        # Default behavior for other sensors
-        if self.entity_description.should_report(self.device):
-            val = getattr(self.device, sensor_key, None)
-            # Log only if the state has changed
-            if self._last_sensor_state.get(sensor_key) != val:
-                _LOGGER.debug(f"Raw {sensor_key} for device {self.device.serial}: {val}")
-                self._last_sensor_state[sensor_key] = val
-            return val
-        return None
-
-    @property
-    def icon(self) -> str | None:
-        """Return the icon to use in the frontend, if any."""
-        if (icon := self.entity_description.icon_fn(self.state)) is not None:
-            return icon
-        return super().icon
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        """Return the native unit of measurement to use in the frontend, if any."""
-        # For temperature, display as Fahrenheit
-        if self.entity_description.key == "temperature":
-            return "°F"
-        # For today_feeding_quantity, display as cups in the frontend
-        if self.entity_description.key == "today_feeding_quantity":
-            return "cups"
-        # For today_eating_time, display as seconds in the frontend
-        elif self.entity_description.key == "today_eating_time":
-            return "s"
-        # For wifi_rssi, display as dBm
-        elif self.entity_description.key == "wifi_rssi":
-            return "dBm"
-        # For weight, display as ounces in the frontend
-        elif self.entity_description.key == "weight":
-            return "oz"
-        # For use_water_interval and use_water_duration, display as minutes
-        elif self.entity_description.key in ["use_water_interval", "use_water_duration"]:
-            return "min"
-        # For weight_percent, display as a percentage
-        elif self.entity_description.key == "weight_percent":
-            return "%"
-        # For electric_quantity, display as a percentage
-        elif self.entity_description.key == "electric_quantity":
-            return "%"
-        # Default behavior for other sensors
-        return self.entity_description.native_unit_of_measurement_fn(self.device)
-
-    @property
-    def device_class(self) -> SensorDeviceClass | None:
-        """Return the device class to use in the frontend, if any."""
-        if (device_class := self.entity_description.device_class_fn(self.device)) is not None:
-            return device_class
-        return super().device_class
 
 
 DEVICE_SENSOR_MAP: dict[type[Device], list[PetLibroSensorEntityDescription]] = {
@@ -714,7 +560,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up PETLIBRO sensors using config entry."""
     # Retrieve the hub from hass.data that was set up in __init__.py
-    hub = hass.data[DOMAIN].get(entry.entry_id)
+    hub: PetLibroHub = hass.data[DOMAIN].get(entry.entry_id)
 
     if not hub:
         _LOGGER.error("Hub not found for entry: %s", entry.entry_id)
@@ -733,15 +579,16 @@ async def async_setup_entry(
 
     # Ask device directly if it has sensors
     entities = [
-        PetLibroSensorEntity(device, hub, description)
+        sensor
         for device in devices
-        for description in device.build_sensor_descriptions()
+        for sensor in device.build_sensors(hub.coordinator)
     ]
+    _LOGGER.info(f"built entities: {entities}")
     if not entities:
         # If not, fall back to definitions from this file
         # Remove this fallback once all devices are updated
         entities = [
-            PetLibroSensorEntity(device, hub, description)
+            PetLibroDescribedSensorEntity(device, hub.coordinator, description)
             for device in devices  # Iterate through devices from the hub
             for device_type, entity_descriptions in DEVICE_SENSOR_MAP.items()
             if isinstance(device, device_type)

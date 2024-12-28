@@ -1,12 +1,11 @@
-# Error Mode - Used for pulling API for new devices. Enable Error Mode and Disable Debug Mode.
-
 from logging import getLogger
 from typing import cast
 
-from .. import PetLibroHub
-from ..api import PetLibroAPI
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+from .api import PetLibroAPI
 from .event import Event, EVENT_UPDATE
-from ..sensor import PetLibroSensorEntityDescription, PetLibroSensorEntity
 
 _LOGGER = getLogger(__name__)
 
@@ -43,7 +42,7 @@ class Device(Event):
         except Exception as e:
             _LOGGER.error(f"Failed to refresh device data: {e}")
 
-    def build_sensor_descriptions(self, hub: PetLibroHub) -> list[PetLibroSensorEntityDescription]:
+    def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[SensorEntity]:
         _LOGGER.debug("Device % has no sensors")
         return []
 

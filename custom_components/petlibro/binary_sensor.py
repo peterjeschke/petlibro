@@ -1,88 +1,29 @@
 """Support for PETLIBRO binary sensors."""
 from __future__ import annotations
-from .api import make_api_call
-import aiohttp
-from aiohttp import ClientSession, ClientError
-from dataclasses import dataclass
-from collections.abc import Callable
-from functools import cached_property
-from typing import Optional
-import logging
-from .const import DOMAIN
+
+from logging import getLogger
+
 from homeassistant.components.binary_sensor import (
-    BinarySensorEntity,
-    BinarySensorEntityDescription,
     BinarySensorDeviceClass,
 )
+from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
-from .hub import PetLibroHub  # Adjust the import path as necessary
 
-
-_LOGGER = logging.getLogger(__name__)
-
-from .devices import Device
-from .devices.device import Device
-from .devices.feeders.feeder import Feeder
+from . import PetLibroHub
+from .core import DOMAIN, Device
 from .devices.feeders.air_smart_feeder import AirSmartFeeder
-from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
+from .devices.feeders.feeder import Feeder
 from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
+from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
 from .devices.feeders.one_rfid_smart_feeder import OneRFIDSmartFeeder
 from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
 from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
 from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
-from .entity import PetLibroEntity, _DeviceT, PetLibroEntityDescription
+from .entities import PetLibroBinarySensorEntityDescription, PetLibroBinarySensorEntity
+from .entities.binary_sensor import PetLibroDescribedBinarySensorEntity
 
-
-@dataclass(frozen=True)
-class PetLibroBinarySensorEntityDescription(BinarySensorEntityDescription, PetLibroEntityDescription[_DeviceT]):
-    """A class that describes device binary sensor entities."""
-
-    device_class_fn: Callable[[_DeviceT], BinarySensorDeviceClass | None] = lambda _: None
-    should_report: Callable[[_DeviceT], bool] = lambda _: True
-    device_class: Optional[BinarySensorDeviceClass] = None
-
-class PetLibroBinarySensorEntity(PetLibroEntity[_DeviceT], BinarySensorEntity):
-    """PETLIBRO sensor entity."""
-
-    entity_description: PetLibroBinarySensorEntityDescription[_DeviceT]
-
-    @cached_property
-    def device_class(self) -> BinarySensorDeviceClass | None:
-        """Return the device class to use in the frontend, if any."""
-        return self.entity_description.device_class
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if the binary sensor is on."""
-        # Check if the binary sensor should report its state
-        if not self.entity_description.should_report(self.device):
-            return False
-
-        # Retrieve the state using getattr, defaulting to None if the attribute is missing
-        state = getattr(self.device, self.entity_description.key, None)
-
-        # Check if this is the first time the sensor is being refreshed by checking if _last_state exists
-        last_state = getattr(self, '_last_state', None)
-        initial_log_done = getattr(self, '_initial_log_done', False)  # Track if we've logged the initial state
-
-        # If this is the initial boot, don't log anything but track the state
-        if not initial_log_done:
-            # Mark the initial log as done without logging
-            self._initial_log_done = True  
-        elif last_state != state:
-            # Log state changes: log online with INFO and offline with WARNING
-            if state:
-                _LOGGER.info(f"Device {self.device.name} is online.")
-            else:
-                _LOGGER.warning(f"Device {self.device.name} is offline.")
-
-        # Store the last state for future comparisons
-        self._last_state = state
-
-        # Return the state, ensuring it's a boolean
-        return bool(state)
+_LOGGER = getLogger(__name__)
 
 DEVICE_BINARY_SENSOR_MAP: dict[type[Device], list[PetLibroBinarySensorEntityDescription]] = {
     Feeder: [
@@ -348,7 +289,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up PETLIBRO binary sensors using config entry."""
     # Retrieve the hub from hass.data that was set up in __init__.py
-    hub = hass.data[DOMAIN].get(entry.entry_id)
+    hub: PetLibroHub = hass.data[DOMAIN].get(entry.entry_id)
 
     if not hub:
         _LOGGER.error("Hub not found for entry: %s", entry.entry_id)
@@ -367,7 +308,7 @@ async def async_setup_entry(
 
     # Create binary sensor entities for each device based on the binary sensor map
     entities = [
-        PetLibroBinarySensorEntity(device, hub, description)
+        PetLibroDescribedBinarySensorEntity(device, hub.coordinator, description)
         for device in devices  # Iterate through devices from the hub
         for device_type, entity_descriptions in DEVICE_BINARY_SENSOR_MAP.items()
         if isinstance(device, device_type)

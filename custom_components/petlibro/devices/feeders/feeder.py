@@ -1,8 +1,7 @@
 """Generic PETLIBRO feeder"""
 from typing import Optional, cast
-from . import Device
-from ..device import Device
 
+from ...core import Device
 
 UNITS = {
     1: "cup",

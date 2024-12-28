@@ -1,46 +1,25 @@
 """Support for PETLIBRO switches."""
 from __future__ import annotations
-from .api import make_api_call
-import aiohttp
-from aiohttp import ClientSession, ClientError
-from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
-from functools import cached_property
-from typing import Any, Generic
-import logging
-from .const import DOMAIN
-from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
-from homeassistant.const import EntityCategory
+
+from logging import getLogger
+
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry  # Added ConfigEntry import
-from .hub import PetLibroHub  # Adjust the import path as necessary
 
-_LOGGER = logging.getLogger(__name__)
-
-from .entity import PetLibroEntity, _DeviceT, PetLibroEntityDescription
-from .devices import Device
-from .devices.device import Device
-from .devices.feeders.feeder import Feeder
+from . import PetLibroHub
+from .core import DOMAIN, Device
 from .devices.feeders.air_smart_feeder import AirSmartFeeder
-from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
+from .devices.feeders.feeder import Feeder
 from .devices.feeders.granary_smart_camera_feeder import GranarySmartCameraFeeder
+from .devices.feeders.granary_smart_feeder import GranarySmartFeeder
 from .devices.feeders.one_rfid_smart_feeder import OneRFIDSmartFeeder
 from .devices.feeders.polar_wet_food_feeder import PolarWetFoodFeeder
 from .devices.fountains.dockstream_smart_fountain import DockstreamSmartFountain
 from .devices.fountains.dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
+from .entities import PetLibroSwitchEntityDescription, PetLibroDescribedSwitchEntity
 
-@dataclass(frozen=True)
-class RequiredKeysMixin(Generic[_DeviceT]):
-    """A class that describes devices switch entity required keys."""
-
-    set_fn: Callable[[_DeviceT, bool], Coroutine[Any, Any, None]]
-
-@dataclass(frozen=True)
-class PetLibroSwitchEntityDescription(SwitchEntityDescription, PetLibroEntityDescription[_DeviceT], RequiredKeysMixin[_DeviceT]):
-    """A class that describes device switch entities."""
-
-    entity_category: EntityCategory = EntityCategory.CONFIG
+_LOGGER = getLogger(__name__)
 
 DEVICE_SWITCH_MAP: dict[type[Device], list[PetLibroSwitchEntityDescription]] = {
     Feeder: [
@@ -61,28 +40,6 @@ DEVICE_SWITCH_MAP: dict[type[Device], list[PetLibroSwitchEntityDescription]] = {
     ],
 }
 
-class PetLibroSwitchEntity(PetLibroEntity[_DeviceT], SwitchEntity):
-    """PETLIBRO switch entity."""
-
-    entity_description: PetLibroSwitchEntityDescription[_DeviceT]  # type: ignore [reportIncompatibleVariableOverride]
-
-    @cached_property
-    def is_on(self) -> bool | None:
-        """Return true if switch is on."""
-        return bool(getattr(self.device, self.entity_description.key))
-
-    @property
-    def available(self) -> bool:
-        """Check if the device is available."""
-        return getattr(self.device, 'online', False)
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the switch on."""
-        await self.entity_description.set_fn(self.device, True)
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the switch off."""
-        await self.entity_description.set_fn(self.device, False)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -91,7 +48,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up PETLIBRO switches using config entry."""
     # Retrieve the hub from hass.data that was set up in __init__.py
-    hub = hass.data[DOMAIN].get(entry.entry_id)
+    hub: PetLibroHub = hass.data[DOMAIN].get(entry.entry_id)
 
     if not hub:
         _LOGGER.error("Hub not found for entry: %s", entry.entry_id)
@@ -110,7 +67,7 @@ async def async_setup_entry(
 
     # Create switch entities for each device based on the switch map
     entities = [
-        PetLibroSwitchEntity(device, hub, description)
+        PetLibroDescribedSwitchEntity(device, hub.coordinator, description)
         for device in devices  # Iterate through devices from the hub
         for device_type, entity_descriptions in DEVICE_SWITCH_MAP.items()
         if isinstance(device, device_type)
