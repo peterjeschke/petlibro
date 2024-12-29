@@ -121,7 +121,7 @@
                 "name": "Active feeding plan"
             },
             "wet_feeding_plan_element": {
-                "name": "Plan {plate} start time"
+                "name": "Plate {plate}"
             }
         },
         "switch": {

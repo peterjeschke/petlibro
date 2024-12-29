@@ -24,6 +24,7 @@ class WetFeedingPlanElementSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
         super().__init__(device, coordinator, f"{plan.get("plate")}")
         self._plan = plan
         self._attr_translation_placeholders = {"plate": plan.get("plate")}
+        self._attr_has_entity_name = True
 
     @property
     def translation_key(self):
