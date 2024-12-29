@@ -9,7 +9,6 @@ from homeassistant.components.sensor import SensorEntityDescription, SensorDevic
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .entity import PetLibroEntityDescription, _DeviceT, PetLibroEntity
-from ..core import PetLibroHub
 
 _LOGGER = getLogger(__name__)
 

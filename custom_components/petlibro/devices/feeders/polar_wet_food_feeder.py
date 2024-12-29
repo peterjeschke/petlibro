@@ -2,12 +2,13 @@ from datetime import datetime
 from logging import getLogger
 from zoneinfo import ZoneInfo
 
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from typing_extensions import override
 
 from ...core import PetLibroAPIError, Device
-from ...entities import WetFeedingPlanSensorEntity, PetLibroSensorEntityDescription, PetLibroSensorEntity, \
+from ...entities import WetFeedingPlanElementSensorEntity, PetLibroSensorEntityDescription, PetLibroSensorEntity, \
     PetLibroDescribedSensorEntity
 
 _LOGGER = getLogger(__name__)
@@ -36,11 +37,7 @@ class PolarWetFoodFeeder(Device):
 
     @override
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
-        nice_sensors = []
-        for plan in self._data.get("wetFeedingPlan", {}).get("plan", []):
-            sensors = WetFeedingPlanSensorEntity.build_sensors(self, coordinator, plan)
-            nice_sensors = nice_sensors + sensors
-        boring_sensors = [
+        return [
             *(
                 PetLibroDescribedSensorEntity(self, coordinator, description)
                 for description in [
@@ -123,7 +120,13 @@ class PolarWetFoodFeeder(Device):
             ]
             ),
         ]
-        return [*nice_sensors, *boring_sensors]
+
+    @override
+    def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
+        return [
+            WetFeedingPlanElementSensorEntity(self, coordinator, plan)
+            for plan in self._data.get("wetFeedingPlan", {}).get("plan", [])
+        ]
 
     @property
     def battery_state(self) -> str | None:

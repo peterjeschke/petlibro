@@ -306,14 +306,21 @@ async def async_setup_entry(
     devices = hub.devices  # Devices should already be loaded in the hub
     _LOGGER.debug("Devices in hub: %s", devices)
 
-    # Create binary sensor entities for each device based on the binary sensor map
+    # Ask device directly if it has sensors
     entities = [
-        PetLibroDescribedBinarySensorEntity(device, hub.coordinator, description)
-        for device in devices  # Iterate through devices from the hub
-        for device_type, entity_descriptions in DEVICE_BINARY_SENSOR_MAP.items()
-        if isinstance(device, device_type)
-        for description in entity_descriptions
+        sensor
+        for device in devices
+        for sensor in device.build_binary_sensors(hub.coordinator)
     ]
+    if not entities:
+        # Create binary sensor entities for each device based on the binary sensor map
+        entities = [
+            PetLibroDescribedBinarySensorEntity(device, hub.coordinator, description)
+            for device in devices  # Iterate through devices from the hub
+            for device_type, entity_descriptions in DEVICE_BINARY_SENSOR_MAP.items()
+            if isinstance(device, device_type)
+            for description in entity_descriptions
+        ]
 
     if not entities:
         _LOGGER.warning("No binary sensors added, entities list is empty!")

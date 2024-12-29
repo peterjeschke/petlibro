@@ -4,4 +4,4 @@ from .entity import PetLibroEntity, PetLibroEntityDescription, _DeviceT
 from .number import PetLibroDescribedNumberEntity, PetLibroNumberEntityDescription
 from .sensor import PetLibroSensorEntity, PetLibroSensorEntityDescription, PetLibroDescribedSensorEntity
 from .switch import PetLibroDescribedSwitchEntity, PetLibroSwitchEntityDescription
-from .wet_feeding_entities import WetFeedingPlanSensorEntity
+from .wet_feeding_entities import WetFeedingPlanElementSensorEntity

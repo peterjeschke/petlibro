@@ -583,7 +583,6 @@ async def async_setup_entry(
         for device in devices
         for sensor in device.build_sensors(hub.coordinator)
     ]
-    _LOGGER.info(f"built entities: {entities}")
     if not entities:
         # If not, fall back to definitions from this file
         # Remove this fallback once all devices are updated

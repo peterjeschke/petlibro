@@ -1,6 +1,7 @@
 from logging import getLogger
 from typing import cast
 
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -44,6 +45,10 @@ class Device(Event):
 
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[SensorEntity]:
         _LOGGER.debug("Device % has no sensors")
+        return []
+
+    def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
+        _LOGGER.debug("Device has no binary sensors")
         return []
 
     @property
