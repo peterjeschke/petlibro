@@ -37,6 +37,8 @@ class PolarWetFoodFeeder(Device):
     @override
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
         _LOGGER.debug(f"Building sensors, available data: {self._data}")
+        _LOGGER.debug(f"Building sensors from plan: {self._data.get("wetFeedingPlan")}")
+        _LOGGER.debug(f"Building sensors, plans: {self._data.get("wetFeedingPlan", {}).get("plan", [])}")
         nice_sensors = [
             *(
                 WetFeedingPlanSensorEntity.build_sensors(self, coordinator, plan)
