@@ -11,7 +11,7 @@ from .entity import _DeviceT
 from .sensor import PetLibroSensorEntity
 from ..core import Device
 
-type native_value_type = StateType | date | datetime | Decimal
+type NativeValueType = StateType | date | datetime | Decimal
 
 _LOGGER = getLogger(__name__)
 
@@ -40,24 +40,24 @@ class WetFeedingPlanSensorEntity(PetLibroSensorEntity[_DeviceT]):
         return f"wet_feeding_plan_{self._property.__name__}"
 
     @property
-    def native_value(self) -> native_value_type:
+    def native_value(self) -> NativeValueType:
         return self._property.__get__(self)
 
     @property
-    def start_time(self) -> datetime:
-        return self._plan.executionStartTime
+    def start_time(self) -> datetime | None:
+        return self._plan.get("executionStartTime")
 
     @property
-    def end_time(self) -> datetime:
-        return self._plan.executionEndTime
+    def end_time(self) -> datetime | None:
+        return self._plan.get("executionEndTime")
 
     @property
-    def label(self) -> str:
-        return self._plan.label
+    def label(self) -> str | None:
+        return self._plan.get("label")
 
     @property
-    def cancel_state(self) -> bool:
-        return self._plan.cancelState
+    def cancel_state(self) -> bool | None:
+        return self._plan.get("cancelState")
 
     @staticmethod
     def build_sensors(device: Device, coordinator: DataUpdateCoordinator, plan) -> list[PetLibroSensorEntity[_DeviceT]]:
