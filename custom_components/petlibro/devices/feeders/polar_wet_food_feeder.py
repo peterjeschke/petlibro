@@ -37,11 +37,13 @@ class PolarWetFoodFeeder(Device):
     @override
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
         _LOGGER.debug(f"Building sensors, available data: {self._data}")
-        return [
+        nice_sensors = [
             *(
                 WetFeedingPlanSensorEntity.build_sensors(self, coordinator, plan)
                 for plan in self._data.get("wetFeedingPlan", {}).get("data", {}).get("plan", [])
             ),
+            ]
+        boring_sensors = [
             *(
                 PetLibroDescribedSensorEntity(self, coordinator, description)
                 for description in [
@@ -124,6 +126,9 @@ class PolarWetFoodFeeder(Device):
             ]
             ),
         ]
+        _LOGGER.debug(f"built nice sensors: {nice_sensors}")
+        _LOGGER.debug(f"built boring sensors: {boring_sensors}")
+        return nice_sensors + boring_sensors
 
     @property
     def battery_state(self) -> str | None:
