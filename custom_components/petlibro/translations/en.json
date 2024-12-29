@@ -119,9 +119,6 @@
             },
             "active_feeding_plan_name": {
                 "name": "Active feeding plan"
-            },
-            "wet_feeding_plan_element": {
-                "name": "Plate {plate}"
             }
         },
         "switch": {
@@ -197,6 +194,9 @@
             },
             "display_switch": {
                 "name": "Display Status"
+            },
+            "wet_feeding_plan_element": {
+                "name": "Plate {plate}"
             }
         },
         "number": {
