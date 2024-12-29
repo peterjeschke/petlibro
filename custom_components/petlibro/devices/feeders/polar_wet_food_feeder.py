@@ -40,7 +40,7 @@ class PolarWetFoodFeeder(Device):
         nice_sensors = [
             *(
                 WetFeedingPlanSensorEntity.build_sensors(self, coordinator, plan)
-                for plan in self._data.get("wetFeedingPlan", {}).get("data", {}).get("plan", [])
+                for plan in self._data.get("wetFeedingPlan", {}).get("plan", [])
             ),
             ]
         boring_sensors = [
