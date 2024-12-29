@@ -32,6 +32,7 @@ class PetLibroDescribedBinarySensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
 
     def __init__(self, device: _DeviceT, coordinator: DataUpdateCoordinator, description: PetLibroBinarySensorEntityDescription[_DeviceT]):
         super().__init__(device, coordinator, description.key)
+        self.entity_description = description
 
     @cached_property
     def device_class(self) -> BinarySensorDeviceClass | None:

@@ -601,7 +601,7 @@ async def async_setup_entry(
         # Log the number of entities and their details
         _LOGGER.debug("Adding %d PetLibro sensors", len(entities))
         for entity in entities:
-            _LOGGER.debug("Adding sensor entity: %s for device %s", entity.entity_description.name, entity.device.name)
+            _LOGGER.debug("Adding sensor entity: %s for device %s", entity.entity_id, entity.device.name)
 
         # Add sensor entities to Home Assistant
         async_add_entities(entities)
