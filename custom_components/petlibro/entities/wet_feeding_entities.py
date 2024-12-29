@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from decimal import Decimal
 from logging import getLogger
+from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.typing import StateType
@@ -16,10 +17,10 @@ _LOGGER = getLogger(__name__)
 
 
 class WetFeedingPlanSensorEntity(PetLibroSensorEntity[_DeviceT]):
-    def __init__(self, device: Device, coordinator: DataUpdateCoordinator, plan, provider_property: property):
+    def __init__(self, device: Device, coordinator: DataUpdateCoordinator, plan: dict[Any, Any], provider_property: property):
         try:
-            _LOGGER.debug(f"Setting up wet feeding plan sensor. Plate: {plan.plate} Property: {provider_property}")
-            super().__init__(device, coordinator, f"{plan.plate}_{provider_property.__name__}")
+            _LOGGER.debug(f"Setting up wet feeding plan sensor. Plate: {plan.get("plate")} Property: {provider_property}")
+            super().__init__(device, coordinator, f"{plan.get("plate")}_{provider_property.__name__}")
         except Exception as err:
             _LOGGER.error(f"Error logging the setup:", err)
             raise err
