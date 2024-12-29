@@ -36,15 +36,9 @@ class PolarWetFoodFeeder(Device):
 
     @override
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
-        _LOGGER.debug(f"Building sensors, available data: {self._data}")
-        _LOGGER.debug(f"Building sensors from plan: {self._data.get("wetFeedingPlan")}")
-        plans = self._data.get("wetFeedingPlan", {}).get("plan", [])
-        _LOGGER.debug(f"Building sensors, plans: {plans} {type(plans)} {len(plans)}")
         nice_sensors = []
-        for plan in plans:
-            _LOGGER.debug(f"Building sensors for plan element: {plan}")
+        for plan in self._data.get("wetFeedingPlan", {}).get("plan", []):
             sensors = WetFeedingPlanSensorEntity.build_sensors(self, coordinator, plan)
-            _LOGGER.debug(f"Built plan sensors: {sensors}")
             nice_sensors = nice_sensors + sensors
         boring_sensors = [
             *(
@@ -129,8 +123,6 @@ class PolarWetFoodFeeder(Device):
             ]
             ),
         ]
-        _LOGGER.debug(f"built nice sensors: {nice_sensors}")
-        _LOGGER.debug(f"built boring sensors: {boring_sensors}")
         return [*nice_sensors, *boring_sensors]
 
     @property

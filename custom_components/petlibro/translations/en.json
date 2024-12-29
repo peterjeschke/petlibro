@@ -119,6 +119,18 @@
             },
             "active_feeding_plan_name": {
                 "name": "Active feeding plan"
+            },
+            "wet_feeding_plan_start_time": {
+                "name": "Plan {plate} start time"
+            },
+            "wet_feeding_plan_end_time": {
+                "name": "Plan {plate} end time"
+            },
+            "wet_feeding_plan_label": {
+                "name": "Plan {plate} label"
+            },
+            "wet_feeding_plan_cancel_state": {
+                "name": "Plan {plate} cancelled"
             }
         },
         "switch": {
