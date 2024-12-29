@@ -17,7 +17,12 @@ _LOGGER = getLogger(__name__)
 
 class WetFeedingPlanSensorEntity(PetLibroSensorEntity[_DeviceT]):
     def __init__(self, device: Device, coordinator: DataUpdateCoordinator, plan, provider_property: property):
-        super().__init__(device, coordinator, f"{plan.plate}_{provider_property.__name__}")
+        try:
+            _LOGGER.debug(f"Setting up wet feeding plan sensor. Plate: {plan.plate} Property: {provider_property}")
+            super().__init__(device, coordinator, f"{plan.plate}_{provider_property.__name__}")
+        except Exception as err:
+            _LOGGER.error(f"Error logging the setup:", err)
+            raise err
         self._plan = plan
         self._property = provider_property
 
