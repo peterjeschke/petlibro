@@ -124,10 +124,14 @@ class PolarWetFoodFeeder(Device):
 
     @override
     def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
-        return [
-            WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, self._get_feeding_plan_plate(plate_index))
-            for plate_index in range(1, 4) # This device has three plates and starts counting at one, not zero
-        ]
+        _LOGGER.debug("Polar: Building binary sensors")
+        result = []
+        for plate_index in range(1, 4):
+            _LOGGER.debug("Polar: Building plate sensor %", plate_index)
+            plate = self._get_feeding_plan_plate(plate_index)
+            result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, plate))
+        _LOGGER.debug("Polar: Built sensors %", result)
+        return result
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
         result = None
