@@ -1,5 +1,6 @@
 from datetime import datetime
 from logging import getLogger
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -8,7 +9,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from typing_extensions import override
 
 from ...core import PetLibroAPIError, Device
-from ...entities import WetFeedingPlanElementSensorEntity, PetLibroSensorEntityDescription, PetLibroSensorEntity, \
+from ...entities import WetFeedingPlanPlateSensorEntity, PetLibroSensorEntityDescription, PetLibroSensorEntity, \
     PetLibroDescribedSensorEntity
 
 _LOGGER = getLogger(__name__)
@@ -124,9 +125,15 @@ class PolarWetFoodFeeder(Device):
     @override
     def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
         return [
-            WetFeedingPlanElementSensorEntity(self, coordinator, plan)
-            for plan in self._data.get("wetFeedingPlan", {}).get("plan", [])
+            WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, self._get_feeding_plan_plate(plate_index))
+            for plate_index in range(1, 4) # This device has three plates and starts counting at one, not zero
         ]
+
+    def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
+        for plate in self._data.get("wetFeedingPlan", {}).get("plan", []):
+            if plate.get("plate") == str(plate_index):
+                return plate
+        return None
 
     @property
     def battery_state(self) -> str | None:

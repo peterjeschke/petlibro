@@ -16,14 +16,15 @@ type NativeValueType = StateType | date | datetime | Decimal
 _LOGGER = getLogger(__name__)
 
 
-class WetFeedingPlanElementSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
+class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
     def __init__(self,
                  device: Device,
                  coordinator: DataUpdateCoordinator,
-                 plan: dict[str, Any]):
-        super().__init__(device, coordinator, f"{plan.get("plate")}")
-        self._plan = plan
-        self._attr_translation_placeholders = {"plate": plan.get("plate")}
+                 plate_index: int,
+                 plate: dict[str, Any] | None):
+        super().__init__(device, coordinator, str(plate_index))
+        self._plate = plate
+        self._attr_translation_placeholders = {"plate": str(plate_index)}
         self._attr_has_entity_name = True
 
     @property
@@ -32,25 +33,33 @@ class WetFeedingPlanElementSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
 
     @property
     def is_on(self) -> bool:
-        return True
+        return self._plate is not None
 
     @property
     def start_time(self) -> datetime | None:
-        return datetime.strptime(self._plan.get("executionStartTime"), "%Y-%m-%d %H:%M").astimezone(
-            ZoneInfo(self._plan.get("timezone")))
+        if self._plate is None:
+            return None
+        return datetime.strptime(self._plate.get("executionStartTime"), "%Y-%m-%d %H:%M").astimezone(
+            ZoneInfo(self._plate.get("timezone")))
 
     @property
     def end_time(self) -> datetime | None:
-        return datetime.strptime(self._plan.get("executionEndTime"), "%Y-%m-%d %H:%M").astimezone(
-            ZoneInfo(self._plan.get("timezone")))
+        if self._plate is None:
+            return None
+        return datetime.strptime(self._plate.get("executionEndTime"), "%Y-%m-%d %H:%M").astimezone(
+            ZoneInfo(self._plate.get("timezone")))
 
     @property
     def label(self) -> str | None:
-        return self._plan.get("label")
+        if self._plate is None:
+            return None
+        return self._plate.get("label")
 
     @property
     def cancel_state(self) -> bool | None:
-        return self._plan.get("cancelState")
+        if self._plate is None:
+            return None
+        return self._plate.get("cancelState")
 
     @property
     def state_attributes(self) -> dict[str, Any]:
