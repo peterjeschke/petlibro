@@ -130,10 +130,13 @@ class PolarWetFoodFeeder(Device):
         ]
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
+        result = None
+        _LOGGER.debug("Checking plans: %", self._data.get("wetFeedingPlan", {}).get("plan", []))
         for plate in self._data.get("wetFeedingPlan", {}).get("plan", []):
             if plate.get("plate") == str(plate_index):
-                return plate
-        return None
+                result = plate
+        _LOGGER.debug("Plan for plate %: %", plate_index, result)
+        return result
 
     @property
     def battery_state(self) -> str | None:
