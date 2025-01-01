@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from decimal import Decimal
+from enum import Enum
 from logging import getLogger
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -15,6 +16,11 @@ type NativeValueType = StateType | date | datetime | Decimal
 
 _LOGGER = getLogger(__name__)
 
+# The value is how the API defines the state
+class PlateState(Enum):
+    WAITING = 1,
+    DONE = 2,
+    ACTIVE = 3
 
 class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
     def __init__(self,
@@ -62,10 +68,21 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
         return self._plate.get("cancelState")
 
     @property
+    def plate_state(self) -> PlateState | None:
+        if self._plate is None:
+            return None
+        try:
+            return PlateState(self._plate.get("state"))
+        except ValueError as err:
+            _LOGGER.warning("Unexpected plate state received: %", self._plate.get("state"), err)
+            return None
+
+    @property
     def state_attributes(self) -> dict[str, Any]:
         return {
             "start_time": self.start_time,
             "end_time": self.end_time,
             "label": self.label,
-            "cancel_state": self.cancel_state
+            "cancel_state": self.cancel_state,
+            "plate_state": self.plate_state
         }

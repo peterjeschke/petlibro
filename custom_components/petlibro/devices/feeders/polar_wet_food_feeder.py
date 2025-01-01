@@ -34,7 +34,7 @@ class PolarWetFoodFeeder(Device):
                 "wetFeedingPlan": wet_feeding_plan or {},
             })
         except PetLibroAPIError as err:
-            _LOGGER.error("Error refreshing data for PolarWetFoodFeeder: %", err)
+            _LOGGER.error("Error refreshing data for PolarWetFoodFeeder", err)
 
     @override
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
