@@ -126,11 +126,18 @@ class PolarWetFoodFeeder(Device):
     def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
         _LOGGER.debug("Polar: Building binary sensors")
         result = []
-        for plate_index in range(1, 4):
-            _LOGGER.debug("Polar: Building plate sensor %", plate_index)
-            plate = self._get_feeding_plan_plate(plate_index)
-            result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, plate))
-        _LOGGER.debug("Polar: Built sensors %", result)
+        _LOGGER.debug("Polar: blub")
+        try:
+            _LOGGER.debug("Polar: Enter try")
+            for plate_index in range(1, 4):
+                _LOGGER.debug("Polar: Building plate sensor %", plate_index)
+                plate = self._get_feeding_plan_plate(plate_index)
+                result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, plate))
+            _LOGGER.debug("Polar: Built sensors %", result)
+        except Exception as err:
+            _LOGGER.error("Polar: Error", err)
+            return []
+        _LOGGER.debug("Polar: Exit")
         return result
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
