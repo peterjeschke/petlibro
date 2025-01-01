@@ -130,7 +130,7 @@ class PolarWetFoodFeeder(Device):
         try:
             _LOGGER.debug("Polar: Enter try")
             for plate_index in range(1, 4):
-                _LOGGER.debug("Polar: Building plate sensor %", plate_index)
+                _LOGGER.debug("Polar: Building plate sensor")
                 plate = self._get_feeding_plan_plate(plate_index)
                 result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, plate))
             _LOGGER.debug("Polar: Built sensors %", result)
