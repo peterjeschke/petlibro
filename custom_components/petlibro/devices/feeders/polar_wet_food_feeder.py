@@ -135,7 +135,6 @@ class PolarWetFoodFeeder(Device):
                 _LOGGER.debug("Polar: plate: %", plate)
                 result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index + 1, plate))
                 _LOGGER.debug("Polar: loop end")
-            _LOGGER.debug("Polar: Built sensors %", result)
         except Exception as err:
             _LOGGER.error("Polar: Error", err)
             return []
