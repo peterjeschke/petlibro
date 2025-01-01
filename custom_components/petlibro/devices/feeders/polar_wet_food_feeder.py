@@ -10,7 +10,8 @@ from typing_extensions import override
 
 from ...core import PetLibroAPIError, Device
 from ...entities import WetFeedingPlanPlateSensorEntity, PetLibroSensorEntityDescription, PetLibroSensorEntity, \
-    PetLibroDescribedSensorEntity
+    PetLibroDescribedSensorEntity, PetLibroBinarySensorEntityDescription
+from ...entities.binary_sensor import PetLibroDescribedBinarySensorEntity
 
 _LOGGER = getLogger(__name__)
 
@@ -124,13 +125,22 @@ class PolarWetFoodFeeder(Device):
 
     @override
     def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
-        _LOGGER.debug("Polar: Building binary sensors")
-        result = []
-        for plate_index in range(1,4):
-            plate = self._get_feeding_plan_plate(plate_index )
-            _LOGGER.debug("Polar: plate: %s", plate)
-            result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index , plate))
-        return result
+        return [
+            *(
+                WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, self._get_feeding_plan_plate(plate_index))
+                for plate_index in range(1,4)
+            ),
+            *(
+                PetLibroDescribedBinarySensorEntity(self, coordinator, description)
+                for description in [
+                    PetLibroBinarySensorEntityDescription[PolarWetFoodFeeder](
+                        key="active_feeding_plan_repeats",
+                        translation_key="active_feeding_plan_repeats",
+                        icon="mdi:repeat"
+                    )
+                ]
+            )
+        ]
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
         result = None
@@ -241,3 +251,7 @@ class PolarWetFoodFeeder(Device):
     def wifi_ssid(self) -> str | None:
         """Returns the Wi-Fi's SSID, also known as the name"""
         return self._data.get("realInfo", {}).get("wifiSsid")
+
+    @property
+    def active_feeding_plan_repeats(self) -> bool | None:
+        return self._data.get("wetFeedingPlan", {}).get("autoRepeat")

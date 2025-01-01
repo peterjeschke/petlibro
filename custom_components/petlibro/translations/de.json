@@ -197,6 +197,9 @@
             },
             "wet_feeding_plan_element": {
                 "name": "Teller {plate}"
+            },
+            "active_feeding_plan_repeats": {
+                "name": "Aktiver Fütterungsplan wiederholt"
             }
         },
         "number": {

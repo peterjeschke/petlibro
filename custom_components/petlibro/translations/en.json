@@ -197,6 +197,9 @@
             },
             "wet_feeding_plan_element": {
                 "name": "Plate {plate}"
+            },
+            "active_feeding_plan_repeats": {
+                "name": "Active feeding plan repeats"
             }
         },
         "number": {
