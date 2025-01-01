@@ -39,7 +39,7 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
 
     @property
     def is_on(self) -> bool:
-        return self._plate is not None
+        return self.plate_state == PlateState.ACTIVE
 
     @property
     def start_time(self) -> datetime | None:
@@ -73,7 +73,7 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
             _LOGGER.debug("Polar: self._plate is none!")
             return None
         try:
-            _LOGGER.debug("Polar: platestate %s", self._plate.get("state"))
+            _LOGGER.debug("Polar: platestate %s (%s): %s", self._plate.get("state"), type(self._plate.get("state")), PlateState(self._plate.get("state")))
             return PlateState(self._plate.get("state"))
         except ValueError as err:
             _LOGGER.warning("Unexpected plate state received: %s", self._plate.get("state"), err)
