@@ -132,22 +132,22 @@ class PolarWetFoodFeeder(Device):
             for plate_index in range(3):
                 _LOGGER.debug("Polar: Building plate sensor")
                 plate = self._get_feeding_plan_plate(plate_index + 1)
-                _LOGGER.debug("Polar: plate: %", plate)
+                _LOGGER.debug("Polar: plate: %s", plate)
                 result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index + 1, plate))
                 _LOGGER.debug("Polar: loop end")
         except Exception as err:
             _LOGGER.error("Polar: Error", err)
             return []
-        _LOGGER.debug("Polar: Exit, result len(%)", len(result))
+        _LOGGER.debug("Polar: Exit, result len(%s)", len(result))
         return result
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
         result = None
-        _LOGGER.debug("Checking plans: %", self._data.get("wetFeedingPlan", {}).get("plan", []))
+        _LOGGER.debug("Checking plans: %s", self._data.get("wetFeedingPlan", {}).get("plan", []))
         for plate in self._data.get("wetFeedingPlan", {}).get("plan", []):
             if plate.get("plate") == str(plate_index):
                 result = plate
-        _LOGGER.debug("Plan for plate %: %", plate_index, result)
+        _LOGGER.debug("Plan for plate %s: %s", plate_index, result)
         return result
 
     @property

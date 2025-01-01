@@ -29,7 +29,6 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
                  plate_index: int,
                  plate: dict[str, Any] | None):
         super().__init__(device, coordinator, str(plate_index))
-        _LOGGER.debug("POLAR: init sensor")
         self._plate = plate
         self._attr_translation_placeholders = {"plate": str(plate_index)}
         self._attr_has_entity_name = True
@@ -71,11 +70,13 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
     @property
     def plate_state(self) -> PlateState | None:
         if self._plate is None:
+            _LOGGER.debug("Polar: self._plate is none!")
             return None
         try:
+            _LOGGER.debug("Polar: platestate %s", self._plate.get("state"))
             return PlateState(self._plate.get("state"))
         except ValueError as err:
-            _LOGGER.warning("Unexpected plate state received: %", self._plate.get("state"), err)
+            _LOGGER.warning("Unexpected plate state received: %s", self._plate.get("state"), err)
             return None
 
     @property
