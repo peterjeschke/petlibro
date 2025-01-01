@@ -18,8 +18,8 @@ _LOGGER = getLogger(__name__)
 
 # The value is how the API defines the state
 class PlateState(Enum):
-    WAITING = 1,
-    DONE = 2,
+    WAITING = 1
+    DONE = 2
     ACTIVE = 3
 
 class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
