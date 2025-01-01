@@ -5,9 +5,11 @@ from logging import getLogger
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from . import PetLibroSensorEntity
 from .binary_sensor import PetLibroBinarySensorEntity
 from .entity import _DeviceT
 from ..core import Device
@@ -22,7 +24,7 @@ class PlateState(Enum):
     DONE = 2
     ACTIVE = 3
 
-class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
+class WetFeedingPlanPlateSensorEntity(PetLibroSensorEntity[_DeviceT]):
     def __init__(self,
                  device: Device,
                  coordinator: DataUpdateCoordinator,
@@ -32,14 +34,12 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
         self._plate = plate
         self._attr_translation_placeholders = {"plate": str(plate_index)}
         self._attr_has_entity_name = True
+        self._attr_device_class = SensorDeviceClass.ENUM
+        self._attr_options = [e.name for e in PlateState]
 
     @property
     def translation_key(self):
         return f"wet_feeding_plan_element"
-
-    @property
-    def is_on(self) -> bool:
-        return self.plate_state == PlateState.ACTIVE
 
     @property
     def start_time(self) -> datetime | None:
@@ -68,12 +68,12 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
         return self._plate.get("cancelState")
 
     @property
-    def plate_state(self) -> PlateState | None:
+    def native_value(self) -> str | None:
         if self._plate is None:
             return None
         state = self._plate.get("state")
         try:
-            return PlateState(state)
+            return PlateState(state).name
         except ValueError as err:
             _LOGGER.error("Unexpected plate state received: %s", state, err)
             return None
@@ -84,6 +84,5 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
             "start_time": self.start_time,
             "end_time": self.end_time,
             "label": self.label,
-            "cancel_state": self.cancel_state,
-            "plate_state": self.plate_state.name if self.plate_state is not None else None
+            "cancel_state": self.cancel_state
         }

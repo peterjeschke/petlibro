@@ -41,6 +41,10 @@ class PolarWetFoodFeeder(Device):
     def build_sensors(self, coordinator: DataUpdateCoordinator) -> list[PetLibroSensorEntity]:
         return [
             *(
+                WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, self._get_feeding_plan_plate(plate_index))
+                for plate_index in range(1,4)
+            ),
+            *(
                 PetLibroDescribedSensorEntity(self, coordinator, description)
                 for description in [
                 PetLibroSensorEntityDescription[PolarWetFoodFeeder](
@@ -126,10 +130,6 @@ class PolarWetFoodFeeder(Device):
     @override
     def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
         return [
-            *(
-                WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index, self._get_feeding_plan_plate(plate_index))
-                for plate_index in range(1,4)
-            ),
             *(
                 PetLibroDescribedBinarySensorEntity(self, coordinator, description)
                 for description in [
