@@ -126,28 +126,20 @@ class PolarWetFoodFeeder(Device):
     def build_binary_sensors(self, coordinator: DataUpdateCoordinator) -> list[BinarySensorEntity]:
         _LOGGER.debug("Polar: Building binary sensors")
         result = []
-        _LOGGER.debug("Polar: blub")
-        try:
-            _LOGGER.debug("Polar: Enter try")
-            for plate_index in range(3):
-                _LOGGER.debug("Polar: Building plate sensor")
-                plate = self._get_feeding_plan_plate(plate_index + 1)
-                _LOGGER.debug("Polar: plate: %s", plate)
-                result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index + 1, plate))
-                _LOGGER.debug("Polar: loop end")
-        except Exception as err:
-            _LOGGER.error("Polar: Error", err)
-            return []
-        _LOGGER.debug("Polar: Exit, result len(%s)", len(result))
+        for plate_index in range(1,4):
+            plate = self._get_feeding_plan_plate(plate_index )
+            _LOGGER.debug("Polar: plate: %s", plate)
+            result.append(WetFeedingPlanPlateSensorEntity(self, coordinator, plate_index , plate))
         return result
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
         result = None
-        _LOGGER.debug("Checking plans: %s", self._data.get("wetFeedingPlan", {}).get("plan", []))
+        _LOGGER.debug("Polar: Checking plans: %s", self._data.get("wetFeedingPlan", {}).get("plan", []))
         for plate in self._data.get("wetFeedingPlan", {}).get("plan", []):
-            if plate.get("plate") == str(plate_index):
+            _LOGGER.debug("Polar: plate: %s (%s)", plate.get("plate"), type(plate.get("plate")))
+            if plate.get("plate") == plate_index:
                 result = plate
-        _LOGGER.debug("Plan for plate %s: %s", plate_index, result)
+        _LOGGER.debug("Polar: Plan for plate %s: %s", plate_index, result)
         return result
 
     @property
