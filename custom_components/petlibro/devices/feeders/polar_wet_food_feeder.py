@@ -137,7 +137,7 @@ class PolarWetFoodFeeder(Device):
         except Exception as err:
             _LOGGER.error("Polar: Error", err)
             return []
-        _LOGGER.debug("Polar: Exit")
+        _LOGGER.debug("Polar: Exit, result len(%)", len(result))
         return result
 
     def _get_feeding_plan_plate(self, plate_index: int) -> dict[str, Any] | None:
