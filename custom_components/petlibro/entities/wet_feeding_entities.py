@@ -29,6 +29,7 @@ class WetFeedingPlanPlateSensorEntity(PetLibroBinarySensorEntity[_DeviceT]):
                  plate_index: int,
                  plate: dict[str, Any] | None):
         super().__init__(device, coordinator, str(plate_index))
+        _LOGGER.debug("POLAR: init sensor")
         self._plate = plate
         self._attr_translation_placeholders = {"plate": str(plate_index)}
         self._attr_has_entity_name = True
