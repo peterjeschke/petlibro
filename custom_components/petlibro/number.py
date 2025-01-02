@@ -1,5 +1,8 @@
 """Support for PETLIBRO numbers."""
 from __future__ import annotations
+
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .api import make_api_call
 import aiohttp
 from aiohttp import ClientSession, ClientError
@@ -47,9 +50,12 @@ class PetLibroNumberEntityDescription(NumberEntityDescription, PetLibroEntityDes
     device_class: Optional[NumberDeviceClass] = None
 
 class PetLibroNumberEntity(PetLibroEntity[_DeviceT], NumberEntity):
-    """PETLIBRO sensor entity."""
 
     entity_description: PetLibroNumberEntityDescription[_DeviceT]
+
+    def __init__(self, device: Device, coordinator: DataUpdateCoordinator[bool], description: PetLibroNumberEntityDescription[_DeviceT]):
+        super().__init__(device, coordinator, description.key)
+        self.entity_description = description
 
     @cached_property
     def device_class(self) -> NumberDeviceClass | None:

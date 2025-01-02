@@ -116,6 +116,12 @@
             },
             "plate_position": {
                 "name": "Tellerposition"
+            },
+            "active_feeding_plan_name": {
+                "name": "Aktiver Fütterungsplan"
+            },
+            "wet_feeding_plan_element": {
+                "name": "Teller {plate}"
             }
         },
         "switch": {
@@ -191,6 +197,9 @@
             },
             "display_switch": {
                 "name": "Displaymodus"
+            },
+            "active_feeding_plan_repeats": {
+                "name": "Aktiver Fütterungsplan wiederholt"
             }
         },
         "number": {
