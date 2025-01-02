@@ -1,4 +1,4 @@
-from . import Device
+from .. import Device
 
 
 class Fountain(Device):
