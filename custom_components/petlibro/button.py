@@ -1,5 +1,8 @@
 """Support for PETLIBRO buttons."""
 from __future__ import annotations
+
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .api import make_api_call
 import aiohttp
 from aiohttp import ClientSession, ClientError
@@ -173,6 +176,10 @@ DEVICE_BUTTON_MAP: dict[type[Device], list[PetLibroButtonEntityDescription]] = {
 class PetLibroButtonEntity(PetLibroEntity[_DeviceT], ButtonEntity):
     """PETLIBRO button entity."""
     entity_description: PetLibroButtonEntityDescription[_DeviceT]
+
+    def __init__(self, device: Device, coordinator: DataUpdateCoordinator[bool], description: PetLibroButtonEntityDescription[_DeviceT]):
+        super().__init__(device, coordinator, description.key)
+        self.entity_description = description
 
     @property
     def available(self) -> bool:

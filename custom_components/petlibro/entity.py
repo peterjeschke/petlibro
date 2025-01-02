@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
 from functools import cached_property
+from typing import Generic, TypeVar
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
+from .const import DOMAIN
 from .devices import Device
 from .devices.event import EVENT_UPDATE
-from .const import DOMAIN
-from .hub import PetLibroHub
 
 _DeviceT = TypeVar("_DeviceT", bound=Device)
 
@@ -25,14 +24,12 @@ class PetLibroEntity(
     _attr_has_entity_name = True
 
     def __init__(
-        self, device: _DeviceT, hub: PetLibroHub, description: PetLibroEntityDescription[_DeviceT]
+            self, device: _DeviceT, coordinator: DataUpdateCoordinator[bool], key: str
     ) -> None:
         """Pass coordinator to CoordinatorEntity."""
-        super().__init__(hub.coordinator)
+        super().__init__(coordinator)
         self.device = device
-        self.hub = hub
-        self.entity_description = description
-        self._attr_unique_id = f"{self.device.serial}-{description.key}"
+        self._attr_unique_id = f"{self.device.serial}-{key}"
 
     @cached_property
     def device_info(self) -> DeviceInfo | None:

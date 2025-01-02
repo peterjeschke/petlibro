@@ -1,5 +1,8 @@
 """Support for PETLIBRO binary sensors."""
 from __future__ import annotations
+
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .api import make_api_call
 import aiohttp
 from aiohttp import ClientSession, ClientError
@@ -47,6 +50,10 @@ class PetLibroBinarySensorEntity(PetLibroEntity[_DeviceT], BinarySensorEntity):
     """PETLIBRO sensor entity."""
 
     entity_description: PetLibroBinarySensorEntityDescription[_DeviceT]
+
+    def __init__(self, device: Device, coordinator: DataUpdateCoordinator[bool], description: PetLibroBinarySensorEntityDescription[_DeviceT]):
+        super().__init__(device, coordinator, description.key)
+        self.entity_description = description
 
     @cached_property
     def device_class(self) -> BinarySensorDeviceClass | None:
@@ -367,7 +374,7 @@ async def async_setup_entry(
 
     # Create binary sensor entities for each device based on the binary sensor map
     entities = [
-        PetLibroBinarySensorEntity(device, hub, description)
+        PetLibroBinarySensorEntity(device, hub.coordinator, description)
         for device in devices  # Iterate through devices from the hub
         for device_type, entity_descriptions in DEVICE_BINARY_SENSOR_MAP.items()
         if isinstance(device, device_type)

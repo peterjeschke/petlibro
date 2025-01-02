@@ -1,5 +1,8 @@
 """Support for PETLIBRO switches."""
 from __future__ import annotations
+
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .api import make_api_call
 import aiohttp
 from aiohttp import ClientSession, ClientError
@@ -62,9 +65,12 @@ DEVICE_SWITCH_MAP: dict[type[Device], list[PetLibroSwitchEntityDescription]] = {
 }
 
 class PetLibroSwitchEntity(PetLibroEntity[_DeviceT], SwitchEntity):
-    """PETLIBRO switch entity."""
 
-    entity_description: PetLibroSwitchEntityDescription[_DeviceT]  # type: ignore [reportIncompatibleVariableOverride]
+    entity_description: PetLibroSwitchEntityDescription[_DeviceT]
+
+    def __init__(self, device: Device, coordinator: DataUpdateCoordinator[bool], description: PetLibroSwitchEntityDescription[_DeviceT]):
+        super().__init__(device, coordinator, description.key)
+        self.entity_description = description
 
     @cached_property
     def is_on(self) -> bool | None:
