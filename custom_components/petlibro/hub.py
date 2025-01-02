@@ -1,20 +1,34 @@
 import asyncio
-
-from logging import getLogger
-from asyncio import gather
 from collections.abc import Mapping
-from typing import List, Any, Optional
 from datetime import datetime, timedelta
-from .const import UPDATE_INTERVAL_SECONDS
-from homeassistant.core import HomeAssistant
+from logging import getLogger
+from typing import List, Any, Optional, Dict, Type
+
+from aiohttp import ClientResponseError, ClientConnectorError
 from homeassistant.const import CONF_REGION, CONF_API_TOKEN
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from aiohttp import ClientResponseError, ClientConnectorError
-from .api import PetLibroAPI  # Use a relative import if inside the same package
-from .const import DOMAIN, CONF_EMAIL, CONF_PASSWORD  # Import CONF_EMAIL and CONF_PASSWORD
+
+from .api import PetLibroAPI
 from .api import PetLibroAPIError
-from .devices import Device, product_name_map
+from .const import CONF_EMAIL, CONF_PASSWORD
+from .const import UPDATE_INTERVAL_SECONDS
+from .devices import Device
+from .devices.feeders import AirSmartFeeder, GranarySmartFeeder, GranarySmartCameraFeeder, OneRFIDSmartFeeder, \
+    PolarWetFoodFeeder
+from .devices.fountains import DockstreamSmartFountain, DockstreamSmartRFIDFountain
+
+product_name_map : Dict[str, Type[Device]] = {
+    "Air Smart Feeder": AirSmartFeeder,
+    "Granary Smart Feeder": GranarySmartFeeder,
+    "Granary Smart Camera Feeder": GranarySmartCameraFeeder,
+    "One RFID Smart Feeder": OneRFIDSmartFeeder,
+    "Polar Wet Food Feeder": PolarWetFoodFeeder,
+    "Dockstream Smart Fountain": DockstreamSmartFountain,
+    "Dockstream Smart RFID Fountain": DockstreamSmartRFIDFountain
+}
+
 
 _LOGGER = getLogger(__name__)
 

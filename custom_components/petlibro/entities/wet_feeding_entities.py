@@ -9,7 +9,7 @@ from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .. import Device
+from ..devices import Device
 from ..entity import _DeviceT
 from ..sensor import PetLibroSensorEntity
 

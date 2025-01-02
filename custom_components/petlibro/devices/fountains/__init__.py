@@ -1,1 +1,3 @@
-from .. import Device
+from .dockstream_smart_fountain import DockstreamSmartFountain
+from .dockstream_smart_rfid_fountain import DockstreamSmartRFIDFountain
+from .fountain import Fountain
